@@ -117,6 +117,47 @@ def test_register_cmap():
             cm.register_cmap('nome', cmap='not a cmap')
 
 
+def test_register_cmap_name_handling():
+    """Test that set_cmap works with registered colormap names that differ from internal names."""
+    from matplotlib.colors import LinearSegmentedColormap
+    import matplotlib.pyplot as plt
+    
+    # Create a colormap with one internal name
+    cmap_data = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+    my_cmap = LinearSegmentedColormap.from_list('internal_name', cmap_data)
+    
+    # Register it with a different name
+    registered_name = 'registered_name'
+    with pytest.warns(
+            mpl.MatplotlibDeprecationWarning,
+            match=r"matplotlib\.colormaps\.register\(name\)"
+    ):
+        cm.register_cmap(name=registered_name, cmap=my_cmap)
+    
+    # Store original default cmap to restore later
+    original_cmap = mpl.rcParams['image.cmap']
+    
+    try:
+        # The key test: set_cmap should work with the registered name
+        plt.set_cmap(registered_name)
+        
+        # Verify the default colormap was set to the registered name, not the internal name  
+        assert mpl.rcParams['image.cmap'] == registered_name
+        
+        # Verify we can get the default colormap (this would fail before the fix)
+        default_cmap = cm.get_cmap(None)  # Gets default cmap
+        assert default_cmap is not None
+        
+    finally:
+        # Clean up: restore original default cmap and unregister our test cmap
+        mpl.rcParams['image.cmap'] = original_cmap
+        with pytest.warns(
+                mpl.MatplotlibDeprecationWarning,
+                match=r"matplotlib\.colormaps\.unregister\(name\)"
+        ):
+            cm.unregister_cmap(registered_name)
+
+
 def test_colormaps_get_cmap():
     cr = mpl.colormaps
 

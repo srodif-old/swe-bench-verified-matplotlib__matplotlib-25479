@@ -2278,9 +2278,14 @@ def set_cmap(cmap: Colormap | str) -> None:
     matplotlib.cm.register_cmap
     matplotlib.cm.get_cmap
     """
+    # Store the original name if it was passed as a string
+    # This preserves the registered name rather than the internal colormap name
+    original_name = cmap if isinstance(cmap, str) else None
     cmap = get_cmap(cmap)
 
-    rc('image', cmap=cmap.name)
+    # Use the original registered name if available, otherwise fall back to cmap.name
+    cmap_name = original_name if original_name is not None else cmap.name
+    rc('image', cmap=cmap_name)
     im = gci()
 
     if im is not None:
